@@ -4,11 +4,10 @@ extern crate serde_derive;
 extern crate bio;
 extern crate ndarray;
 
-use bio::utils::{IntoTextIterator, TextIterator};
+use bio::utils::IntoTextIterator;
 use std::f32;
 use std::convert::From;
-use std::default;
-use ndarray::prelude::{Array, Array2, Axis};
+use ndarray::prelude::Array2;
 
 mod dnamotif;
 //mod protmotif;
@@ -36,14 +35,18 @@ impl Default for ScoredPos {
 
 trait Motif {
     /// lookup table mapping monomer -> index
-    const lk: [u8; 127] = [INVALID_MONO; 127];
+    const LK: [u8; 127] = [INVALID_MONO; 127];
     /// use lk to find index; enforce boundaries
     fn lookup(mono: u8) -> Option<usize> {
         if mono >= 127 {
             None
         } else {
-            let idx = Self::lk[mono as usize];
-            if idx == INVALID_MONO { None } else { Some(idx as usize) }
+            let idx = Self::LK[mono as usize];
+            if idx == INVALID_MONO {
+                None
+            } else {
+                Some(idx as usize)
+            }
         }
     }
 
@@ -71,7 +74,7 @@ trait Motif {
 }
 
 
-    /*
+/*
     /// update scores field based on counts & pseudocounts
     pub fn calc_scores(&mut self) {
         match self.seqs {

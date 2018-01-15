@@ -19,6 +19,20 @@ impl DNAMotif {
     //pub fn from_seqs_with_pseudoct(seqs: Vec<Vec<u8>>, pseudo: f32) -> DNAMotif;
     //pub fn from_seqs_with_pseudocts(seqs: Vec<Vec<u8>>, pseudos: [f32; 4]) -> DNAMotif;
 
+    // helper function -- normalize self.scores
+    fn normalize(&mut self) {
+        for i in 0..self.len() {
+            let mut tot: f32 = 0.0;
+            // FIXME: slices would be cleaner
+            for base_i in 0..4 {
+                tot += self.scores[[i, base_i]];
+            }
+            for base_i in 0..4 {
+                self.scores[[i, base_i]] /= tot;
+            }
+        }
+    }
+
     // helper function
     fn calc_minmax(&mut self) {
         let pwm_len = self.len();
@@ -48,7 +62,7 @@ impl DNAMotif {
 }
 
 impl Motif for DNAMotif {
-    const lk: [u8; 127] = [
+    const LK: [u8; 127] = [
         255,
         255,
         255,
@@ -199,7 +213,9 @@ impl Motif for DNAMotif {
         let seq = seq_it.into_iter().cloned().collect::<Vec<u8>>();
         for start in 0..seq.len() - pwm_len + 1 {
             let m: Vec<f32> = (0..pwm_len)
-                .map(|i| self.scores[[i, Self::lookup(seq[start + i]).expect("raw lookup")]])
+                .map(|i| {
+                    self.scores[[i, Self::lookup(seq[start + i]).expect("raw lookup")]]
+                })
                 .collect();
             let tot = m.iter().sum();
             if tot > best_score {
@@ -319,13 +335,13 @@ impl From<Vec<Vec<u8>>> for DNAMotif {
                 counts[[idx, Self::lookup(*base).expect("DNA base")]] += 1.0;
             }
         }
-
         let mut m = DNAMotif {
             seq_ct: seqs.len(),
-            scores: Array2::zeros((seqlen, 4)),
+            scores: counts,
             min_score: 0.0,
             max_score: 0.0,
         };
+        m.normalize();
         m.calc_minmax();
         m
     }
