@@ -16,8 +16,44 @@ struct DNAMotif {
 }
 
 impl DNAMotif {
-    //pub fn from_seqs_with_pseudoct(seqs: Vec<Vec<u8>>, pseudo: f32) -> DNAMotif;
-    //pub fn from_seqs_with_pseudocts(seqs: Vec<Vec<u8>>, pseudos: [f32; 4]) -> DNAMotif;
+    pub fn from_seqs_with_pseudocts(seqs: Vec<Vec<u8>>, pseudos: &[f32; 4]) -> DNAMotif {
+        // null case
+        if seqs.len() == 0 {
+            return DNAMotif {
+                seq_ct: 0,
+                scores: Array2::zeros((0, 0)),
+                min_score: 0.0,
+                max_score: 0.0,
+            };
+        }
+
+        let seqlen = seqs[0].len();
+        let mut counts = Array2::zeros((seqlen, 4));
+        for i in 0..seqlen {
+            for base in 0..4 {
+                counts[[i,base]] = pseudos[base];
+            }
+        }
+
+        for seq in seqs.iter() {
+            if seq.len() != seqlen {
+                panic!("inconsistent sequence lengths");
+            }
+
+            for (idx, base) in seq.iter().enumerate() {
+                counts[[idx, Self::lookup(*base).expect("DNA base")]] += 1.0;
+            }
+        }
+        let mut m = DNAMotif {
+            seq_ct: seqs.len(),
+            scores: counts,
+            min_score: 0.0,
+            max_score: 0.0,
+        };
+        m.normalize();
+        m.calc_minmax();
+        m
+    }
 
     // helper function -- normalize self.scores
     fn normalize(&mut self) {
@@ -313,37 +349,7 @@ impl Motif for DNAMotif {
 /// use DEF_PSEUDO as default pseudocount
 impl From<Vec<Vec<u8>>> for DNAMotif {
     fn from(seqs: Vec<Vec<u8>>) -> Self {
-        // null case
-        if seqs.len() == 0 {
-            return DNAMotif {
-                seq_ct: 0,
-                scores: Array2::zeros((0, 0)),
-                min_score: 0.0,
-                max_score: 0.0,
-            };
-        }
-
-        let seqlen = seqs[0].len();
-        let mut counts = Array2::from_elem((seqlen, 4), DEF_PSEUDO);
-
-        for seq in seqs.iter() {
-            if seq.len() != seqlen {
-                panic!("inconsistent sequence lengths");
-            }
-
-            for (idx, base) in seq.iter().enumerate() {
-                counts[[idx, Self::lookup(*base).expect("DNA base")]] += 1.0;
-            }
-        }
-        let mut m = DNAMotif {
-            seq_ct: seqs.len(),
-            scores: counts,
-            min_score: 0.0,
-            max_score: 0.0,
-        };
-        m.normalize();
-        m.calc_minmax();
-        m
+        DNAMotif::from_seqs_with_pseudocts(seqs, &[DEF_PSEUDO, DEF_PSEUDO, DEF_PSEUDO, DEF_PSEUDO])
     }
 }
 
@@ -355,6 +361,7 @@ impl From<Array2<f32>> for DNAMotif {
             min_score: 0.0,
             max_score: 0.0,
         };
+        m.normalize();
         m.calc_minmax();
         m
     }
