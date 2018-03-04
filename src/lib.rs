@@ -38,6 +38,8 @@ impl Default for ScoredPos {
 trait Motif {
     /// lookup table mapping monomer -> index
     const LK: [u8; 127] = [INVALID_MONO; 127];
+    const MONOS: &'static [u8] = b"";
+
     /// use lk to find index; enforce boundaries
     fn lookup(mono: u8) -> Option<usize> {
         if mono >= 127 {
@@ -53,7 +55,6 @@ trait Motif {
     }
 
     fn len(&self) -> usize;
-    fn get_monos(&self) -> &[u8];
 
     /// represent highly conserved bases
     fn degenerate_consensus(&self) -> Vec<u8>;
@@ -62,6 +63,8 @@ trait Motif {
     fn get_min_score(&self) -> f32;
     /// sum of "best" base at each position
     fn get_max_score(&self) -> f32;
+    fn get_bits() -> f32;
+
 
     // standard PSSM scoring is calibrated to (1) pattern len and (2) the min and
     //     max possible scores
@@ -123,7 +126,27 @@ trait Motif {
     /// roughly the inverse of Shannon Entropy
     /// adapted from the information content described here:
     ///    https://en.wikipedia.org/wiki/Sequence_logo#Logo_creation
-    fn info_content(&self) -> f32;
+    fn info_content(&self) -> f32 {
+        fn ent<'a, I>(probs: I) -> f32
+        where
+            I: Iterator<Item = &'a f32>,
+        {
+            probs
+                .map(|p| if *p == 0.0 {
+                    0.0
+                } else {
+                    -1.0 * *p * p.log(2.0)
+                })
+                .sum()
+        }
+        let bits = Self::get_bits();
+        let scores = self.get_scores();
+        let mut tot = 0.0;
+        for row in scores.genrows() {
+            tot += bits - ent(row.iter());
+        }
+        tot
+    }
 }
 
 

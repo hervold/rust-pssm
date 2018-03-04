@@ -1,7 +1,6 @@
 use ::*;
 
 /// monomers, ie, DNA bases
-static MONOMERS: &'static [u8] = b"ATGC";
 /// default pseudocount - used to prevent 0 tallies
 const DEF_PSEUDO: f32 = 0.5;
 
@@ -227,13 +226,10 @@ impl Motif for DNAMotif {
         255,
         255,
     ];
+    const MONOS: &'static [u8] = b"ATGC";
 
     fn len(&self) -> usize {
         self.scores.dim().0
-    }
-
-    fn get_monos(&self) -> &[u8] {
-        MONOMERS
     }
 
     fn get_scores(&self) -> &Array2<f32> {
@@ -244,6 +240,9 @@ impl Motif for DNAMotif {
     }
     fn get_max_score(&self) -> f32 {
         self.max_score
+    }
+    fn get_bits() -> f32 {
+        2.0
     }
 
     /// derived from
@@ -271,11 +270,11 @@ impl Motif for DNAMotif {
             fracs.sort_by(|a, b| b.partial_cmp(a).unwrap());
 
             res.push(if fracs[0].0 > 0.5 && fracs[0].0 > 2.0 * fracs[1].0 {
-                MONOMERS[fracs[0].1]
+                Self::MONOS[fracs[0].1]
             } else if 4.0 * (fracs[0].0 + fracs[1].0) > 3.0 {
-                two(MONOMERS[fracs[0].1], MONOMERS[fracs[1].1])
+                two(Self::MONOS[fracs[0].1], Self::MONOS[fracs[1].1])
             } else if fracs[3].0 < EPSILON {
-                match MONOMERS[fracs[3].1] {
+                match Self::MONOS[fracs[3].1] {
                     b'T' => b'V',
                     b'G' => b'H',
                     b'C' => b'D',
@@ -287,26 +286,6 @@ impl Motif for DNAMotif {
             });
         }
         res
-    }
-    fn info_content(&self) -> f32 {
-        fn ent<'a, I>(probs: I) -> f32
-        where
-            I: Iterator<Item = &'a f32>,
-        {
-            probs
-                .map(|p| if *p == 0.0 {
-                    0.0
-                } else {
-                    -1.0 * *p * p.log(2.0)
-                })
-                .sum()
-        }
-
-        let mut tot = 0.0;
-        for row in self.scores.genrows() {
-            tot += 2.0 - ent(row.iter());
-        }
-        tot
     }
 }
 
