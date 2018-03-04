@@ -52,6 +52,7 @@ trait Motif {
 
     fn len(&self) -> usize;
     fn get_monos(&self) -> &[u8];
+
     /// represent highly conserved bases
     fn degenerate_consensus(&self) -> Vec<u8>;
 
@@ -66,11 +67,11 @@ trait Motif {
     ///   https://www.ncbi.nlm.nih.gov/pmc/articles/PMC169193/
     ///
     fn score<'a, T: IntoTextIterator<'a>>(&self, seq: T) -> Option<ScoredPos>;
-    /*
+
     /// roughly the inverse of Shannon Entropy
     /// adapted from the information content described here:
     ///    https://en.wikipedia.org/wiki/Sequence_logo#Logo_creation
-    fn info_content(&self) -> f32;*/
+    fn info_content(&self) -> f32;
 }
 
 

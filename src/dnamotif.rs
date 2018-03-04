@@ -31,7 +31,7 @@ impl DNAMotif {
         let mut counts = Array2::zeros((seqlen, 4));
         for i in 0..seqlen {
             for base in 0..4 {
-                counts[[i,base]] = pseudos[base];
+                counts[[i, base]] = pseudos[base];
             }
         }
 
@@ -343,6 +343,26 @@ impl Motif for DNAMotif {
         }
         res
     }
+    fn info_content(&self) -> f32 {
+        fn ent<'a, I>(probs: I) -> f32
+        where
+            I: Iterator<Item = &'a f32>,
+        {
+            probs
+                .map(|p| if *p == 0.0 {
+                    0.0
+                } else {
+                    -1.0 * *p * p.log(2.0)
+                })
+                .sum()
+        }
+
+        let mut tot = 0.0;
+        for row in self.scores.genrows() {
+            tot += 2.0 - ent(row.iter());
+        }
+        tot
+    }
 }
 
 /// calculate scores matrix from a list of equal-length sequences
@@ -391,5 +411,13 @@ mod tests {
         } else {
             assert!(false);
         }
+    }
+    #[test]
+    fn test_info_content() {
+        // matrix w/ 100% match to A at each position
+        let pwm = DNAMotif::from_seqs_with_pseudocts(
+            vec![b"AAAA".to_vec(), ], &[0.0, 0.0, 0.0, 0.0]);
+        // 4 bases * 2 bits per base = 8
+        assert_eq!( pwm.info_content(), 8.0 );
     }
 }
