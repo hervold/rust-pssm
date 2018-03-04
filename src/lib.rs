@@ -1,5 +1,7 @@
 
 #[macro_use]
+extern crate lazy_static;
+#[macro_use]
 extern crate serde_derive;
 extern crate bio;
 extern crate ndarray;
@@ -10,7 +12,7 @@ use std::convert::From;
 use ndarray::prelude::Array2;
 
 mod dnamotif;
-//mod protmotif;
+mod protmotif;
 
 pub const EPSILON: f32 = 1e-5;
 pub const INVALID_MONO: u8 = 255;
@@ -55,9 +57,39 @@ trait Motif {
 
     /// represent highly conserved bases
     fn degenerate_consensus(&self) -> Vec<u8>;
+    fn get_scores(&self) -> &Array2<f32>;
+    /// sum of "worst" base at each position
+    fn get_min_score(&self) -> f32;
+    /// sum of "best" base at each position
+    fn get_max_score(&self) -> f32;
 
-    /// simply the sum of matching monomers; can serve as a dumber info_content
-    fn raw_score<'a, T: IntoTextIterator<'a>>(&self, seq: T) -> (usize, f32, Vec<f32>);
+    // standard PSSM scoring is calibrated to (1) pattern len and (2) the min and
+    //     max possible scores
+    // this is just a dumb sum of matching bases
+    fn raw_score<'a, T: IntoTextIterator<'a>>(&self, seq_it: T) -> (usize, f32, Vec<f32>) {
+        let pwm_len = self.len();
+
+        let mut best_start = 0;
+        let mut best_score = -1.0;
+        let mut best_m = Vec::new();
+        // we have to look at slices, so a simple iterator won't do
+        let seq = seq_it.into_iter().cloned().collect::<Vec<u8>>();
+        let scores = self.get_scores();
+        for start in 0..seq.len() - pwm_len + 1 {
+            let m: Vec<f32> = (0..pwm_len)
+                .map(|i| {
+                    scores[[i, Self::lookup(seq[start + i]).expect("raw lookup")]]
+                })
+                .collect();
+            let tot = m.iter().sum();
+            if tot > best_score {
+                best_score = tot;
+                best_start = start;
+                best_m = m;
+            }
+        }
+        (best_start, best_score, best_m)
+    }
 
     /// apply PSM to sequence, finding the offset with the highest score
     /// return None if sequence is too short
@@ -66,7 +98,27 @@ trait Motif {
     ///   Nucleic Acids Res. 2003 Jul 1; 31(13): 3576–3579
     ///   https://www.ncbi.nlm.nih.gov/pmc/articles/PMC169193/
     ///
-    fn score<'a, T: IntoTextIterator<'a>>(&self, seq: T) -> Option<ScoredPos>;
+    fn score<'a, T: IntoTextIterator<'a>>(&self, seq_it: T) -> Option<ScoredPos> {
+        let pwm_len = self.len();
+        let seq = seq_it.into_iter().cloned().collect::<Vec<u8>>();
+        if seq.len() < pwm_len {
+            return None;
+        }
+        let min_score = self.get_min_score();
+        let max_score = self.get_max_score();
+
+        if max_score == min_score {
+            return None;
+        }
+
+        let (best_start, best_score, best_m) = self.raw_score(&seq);
+
+        Some(ScoredPos {
+            loc: best_start,
+            sum: (best_score - min_score) / (max_score - min_score),
+            scores: best_m,
+        })
+    }
 
     /// roughly the inverse of Shannon Entropy
     /// adapted from the information content described here:

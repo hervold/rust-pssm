@@ -1,5 +1,9 @@
 use ::*;
 
+
+lazy_static! {
+    static ref LOG20: f32 = 20f32.log2();
+}
 static AMINO_ACIDS: &'static [u8] = b"ARNDCEQGHILKMFPSTWYV";
 
 
@@ -16,8 +20,7 @@ struct ProtMotif {
 }
 
 impl Motif for ProtMotif {
-    const width: usize = 20;
-    const lk: [u8; 127] = [255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    const LK: [u8; 127] = [255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
                            255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
                            255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
                            255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
@@ -33,6 +36,38 @@ impl Motif for ProtMotif {
     }
     fn len(&self) -> usize {
         self.scores.dim().0
+    }
+    fn get_scores(&self) -> &Array2<f32> {
+        &self.scores
+    }
+    fn get_min_score(&self) -> f32 {
+        self.min_score
+    }
+    fn get_max_score(&self) -> f32 {
+        self.max_score
+    }
+    fn degenerate_consensus(&self) -> Vec<u8> {
+        vec![]
+    }
+    fn info_content(&self) -> f32 {
+        fn ent<'a, I>(probs: I) -> f32
+        where
+            I: Iterator<Item = &'a f32>,
+        {
+            probs
+                .map(|p| if *p == 0.0 {
+                    0.0
+                } else {
+                    -1.0 * *p * p.log(2.0)
+                })
+                .sum()
+        }
+
+        let mut tot = 0.0;
+        for row in self.scores.genrows() {
+            tot += *LOG20 - ent(row.iter());
+        }
+        tot
     }
 
 }

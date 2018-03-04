@@ -236,69 +236,14 @@ impl Motif for DNAMotif {
         MONOMERS
     }
 
-    // standard PSSM scoring is calibrated to (1) pattern len and (2) the min and
-    //     max possible scores
-    // this is just a dumb sum of matching bases
-    fn raw_score<'a, T: IntoTextIterator<'a>>(&self, seq_it: T) -> (usize, f32, Vec<f32>) {
-        let pwm_len = self.len();
-
-        let mut best_start = 0;
-        let mut best_score = -1.0;
-        let mut best_m = Vec::new();
-        // we have to look at slices, so a simple iterator won't do
-        let seq = seq_it.into_iter().cloned().collect::<Vec<u8>>();
-        for start in 0..seq.len() - pwm_len + 1 {
-            let m: Vec<f32> = (0..pwm_len)
-                .map(|i| {
-                    self.scores[[i, Self::lookup(seq[start + i]).expect("raw lookup")]]
-                })
-                .collect();
-            let tot = m.iter().sum();
-            if tot > best_score {
-                best_score = tot;
-                best_start = start;
-                best_m = m;
-            }
-        }
-        (best_start, best_score, best_m)
+    fn get_scores(&self) -> &Array2<f32> {
+        &self.scores
     }
-
-    /// apply PSM to sequence, finding the offset with the highest score
-    /// return None if sequence is too short
-    /// see:
-    ///   MATCHTM: a tool for searching transcription factor binding sites in DNA sequences
-    ///   Nucleic Acids Res. 2003 Jul 1; 31(13): 3576–3579
-    ///   https://www.ncbi.nlm.nih.gov/pmc/articles/PMC169193/
-    ///
-    fn score<'a, T: IntoTextIterator<'a>>(&self, seq_it: T) -> Option<ScoredPos> {
-        let pwm_len = self.len();
-        let seq = seq_it.into_iter().cloned().collect::<Vec<u8>>();
-        if seq.len() < pwm_len {
-            return None;
-        }
-        if self.max_score == self.min_score {
-            return None;
-        }
-
-        let (best_start, best_score, best_m) = self.raw_score(&seq);
-
-        if best_score < 0.0 || best_score - self.min_score < 0.0 ||
-            self.max_score - self.min_score < 0.0
-        {
-            println!(
-                "@@ found problem: best = {}; num = {} - {} = {}; demon = {}",
-                best_score,
-                best_score,
-                self.min_score,
-                best_score - self.min_score,
-                self.max_score - self.min_score
-            );
-        }
-        Some(ScoredPos {
-            loc: best_start,
-            sum: (best_score - self.min_score) / (self.max_score - self.min_score),
-            scores: best_m,
-        })
+    fn get_min_score(&self) -> f32 {
+        self.min_score
+    }
+    fn get_max_score(&self) -> f32 {
+        self.max_score
     }
 
     /// derived from
