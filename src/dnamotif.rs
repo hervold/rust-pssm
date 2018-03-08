@@ -339,9 +339,8 @@ mod tests {
     #[test]
     fn test_info_content() {
         // matrix w/ 100% match to A at each position
-        let pwm = DNAMotif::from_seqs_with_pseudocts(
-            vec![b"AAAA".to_vec(), ], &[0.0, 0.0, 0.0, 0.0]);
+        let pwm = DNAMotif::from_seqs_with_pseudocts(vec![b"AAAA".to_vec()], &[0.0, 0.0, 0.0, 0.0]);
         // 4 bases * 2 bits per base = 8
-        assert_eq!( pwm.info_content(), 8.0 );
+        assert_eq!(pwm.info_content(), 8.0);
     }
 }
