@@ -88,7 +88,6 @@ impl ProtMotif {
             self.max_score += max_sc;
         }
     }
-
 }
 
 impl Motif for ProtMotif {
@@ -222,6 +221,16 @@ impl Motif for ProtMotif {
         255,
     ];
     const MONOS: &'static [u8] = b"ARNDCEQGHILKMFPSTWYV";
+
+    // FIXME
+    fn from_scores(scores: Array2<f32>) -> Self {
+        ProtMotif {
+            seq_ct: 0,
+            scores: Array2::zeros((0, 0)),
+            min_score: 0.0,
+            max_score: 0.0,
+        }
+    }
 
     fn rev_lk(idx: usize) -> u8 {
         if idx >= Self::MONOS.len() {

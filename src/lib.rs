@@ -43,6 +43,9 @@ pub trait Motif {
     const LK: [u8; 127] = [INVALID_MONO; 127];
     const MONOS: &'static [u8] = b"";
 
+    // FIXME: this is a hack to work around some trouble I had with generics
+    fn from_scores(scores: Array2<f32>) -> Self;
+
     /// use lk to find index; enforce boundaries
     fn lookup(mono: u8) -> Option<usize> {
         if mono >= 127 {
