@@ -1,6 +1,7 @@
 use ::*;
 
-struct ProtMotif {
+#[derive(Serialize)]
+pub struct ProtMotif {
     pub seq_ct: usize,
     pub scores: Array2<f32>,
     /// sum of "worst" base at each position
@@ -221,6 +222,14 @@ impl Motif for ProtMotif {
         255,
     ];
     const MONOS: &'static [u8] = b"ARNDCEQGHILKMFPSTWYV";
+
+    fn rev_lk(idx: usize) -> u8 {
+        if idx >= Self::MONOS.len() {
+            INVALID_MONO
+        } else {
+            Self::MONOS[idx]
+        }
+    }
 
     fn len(&self) -> usize {
         self.scores.dim().0

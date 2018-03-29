@@ -5,7 +5,8 @@ use ::*;
 const DEF_PSEUDO: f32 = 0.5;
 
 
-struct DNAMotif {
+#[derive(Serialize,Clone)]
+pub struct DNAMotif {
     pub seq_ct: usize,
     pub scores: Array2<f32>,
     /// sum of "worst" base at each position
@@ -227,6 +228,16 @@ impl Motif for DNAMotif {
         255,
     ];
     const MONOS: &'static [u8] = b"ATGC";
+
+    fn rev_lk(idx: usize) -> u8 {
+        match idx {
+            0 => b'A',
+            1 => b'T',
+            2 => b'G',
+            3 => b'C',
+            _ => INVALID_MONO,
+        }
+    }
 
     fn len(&self) -> usize {
         self.scores.dim().0

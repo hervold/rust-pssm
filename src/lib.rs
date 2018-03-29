@@ -14,6 +14,9 @@ use ndarray::prelude::Array2;
 mod dnamotif;
 mod protmotif;
 
+pub use dnamotif::DNAMotif;
+pub use protmotif::ProtMotif;
+
 pub const EPSILON: f32 = 1e-5;
 pub const INVALID_MONO: u8 = 255;
 
@@ -35,7 +38,7 @@ impl Default for ScoredPos {
     }
 }
 
-trait Motif {
+pub trait Motif {
     /// lookup table mapping monomer -> index
     const LK: [u8; 127] = [INVALID_MONO; 127];
     const MONOS: &'static [u8] = b"";
@@ -53,6 +56,8 @@ trait Motif {
             }
         }
     }
+    /// reverse lookup: given index, return monomer (eg, 0 -> A)
+    fn rev_lk(idx: usize) -> u8;
 
     fn len(&self) -> usize;
 
