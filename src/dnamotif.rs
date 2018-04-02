@@ -229,18 +229,6 @@ impl Motif for DNAMotif {
     ];
     const MONOS: &'static [u8] = b"ATGC";
 
-    fn from_scores(scores: Array2<f32>) -> Self {
-        let mut m = DNAMotif {
-            seq_ct: 0,
-            scores: scores,
-            min_score: 0.0,
-            max_score: 0.0,
-        };
-        m.normalize();
-        m.calc_minmax();
-        m
-    }
-
     fn rev_lk(idx: usize) -> u8 {
         match idx {
             0 => b'A',
